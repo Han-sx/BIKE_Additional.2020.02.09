@@ -1,6 +1,8 @@
 BIKE-1 - Additional implementation of "BIKE: Bit Flipping Key Encapsulation". 
 -----------------------------------------------------------------------------
 
+for finding faulty data!
+
 This package is an "additional optimized" implementation of the Round-2 
 variant of BIKE-1. 
 
