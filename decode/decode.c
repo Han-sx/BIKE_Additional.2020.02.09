@@ -65,7 +65,7 @@
 #  endif
 #elif defined(BGF_DECODER)
 #  if(LEVEL == 1)
-#    define MAX_IT 1
+#    define MAX_IT 5
 #  elif(LEVEL == 3)
 #    define MAX_IT 6
 #  elif(LEVEL == 5)
@@ -122,9 +122,9 @@ compute_syndrome(OUT syndrome_t *syndrome, IN const ct_t *ct, IN const sk_t *sk)
 }
 
 _INLINE_ ret_t
-recompute_syndrome(OUT syndrome_t *syndrome,
-                   IN const ct_t *ct,
-                   IN const sk_t *sk,
+recompute_syndrome(OUT syndrome_t     *syndrome,
+                   IN const ct_t      *ct,
+                   IN const sk_t      *sk,
                    IN const split_e_t *splitted_e)
 {
   ct_t tmp_ct = *ct;
@@ -160,7 +160,7 @@ get_threshold(IN const syndrome_t *s)
 
 // Use half-adder as described in [5].
 _INLINE_ void
-bit_sliced_adder(OUT upc_t *upc,
+bit_sliced_adder(OUT upc_t         *upc,
                  IN OUT syndrome_t *rotated_syndrome,
                  IN const size_t    num_of_slices)
 {
@@ -215,10 +215,10 @@ bit_slice_full_subtract(OUT upc_t *upc, IN uint8_t val)
 // vector (e) accordingy. In addition, update the black and gray errors vector
 // with the relevant values.
 _INLINE_ void
-find_err1(OUT split_e_t *e,
-          OUT split_e_t *black_e,
-          OUT split_e_t *gray_e,
-          IN const syndrome_t *           syndrome,
+find_err1(OUT split_e_t                  *e,
+          OUT split_e_t                  *black_e,
+          OUT split_e_t                  *gray_e,
+          IN const syndrome_t            *syndrome,
           IN const compressed_idx_dv_ar_t wlist,
           IN const uint8_t                threshold)
 {
@@ -280,9 +280,9 @@ find_err1(OUT split_e_t *e,
 // Recalculate the UPCs and update the errors vector (e) according to it
 // and to the black/gray vectors.
 _INLINE_ void
-find_err2(OUT split_e_t *e,
-          IN split_e_t *pos_e,
-          IN const syndrome_t *           syndrome,
+find_err2(OUT split_e_t                  *e,
+          IN split_e_t                   *pos_e,
+          IN const syndrome_t            *syndrome,
           IN const compressed_idx_dv_ar_t wlist,
           IN const uint8_t                threshold)
 {
@@ -322,10 +322,10 @@ find_err2(OUT split_e_t *e,
 }
 
 ret_t
-decode(OUT split_e_t *e,
+decode(OUT split_e_t       *e,
        IN const syndrome_t *original_s,
-       IN const ct_t *ct,
-       IN const sk_t *sk)
+       IN const ct_t       *ct,
+       IN const sk_t       *sk)
 {
   split_e_t  black_e = {0};
   split_e_t  gray_e  = {0};

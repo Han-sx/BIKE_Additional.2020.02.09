@@ -30,7 +30,7 @@ print_newline(IN const uint64_t qw_pos)
 {
   // 添加文件写入指针
   FILE *fp;
-  fp = fopen("bad_data.txt","a");
+  fp = fopen("bad_data.txt", "a");
 
 #ifndef NO_NEWLINE
   if((qw_pos % 4) == 3)
@@ -61,7 +61,7 @@ print_uint64(IN const uint64_t val)
 {
   // 添加文件写入指针
   FILE *fp;
-  fp = fopen("bad_data.txt","a");
+  fp = fopen("bad_data.txt", "a");
 
   // If printing in BE is requried swap the order of bytes
 #ifdef PRINT_IN_BE
@@ -88,8 +88,8 @@ print_last_block(IN const uint8_t *last_bytes,
 {
   // 添加文件写入指针
   FILE *fp;
-  fp = fopen("bad_data.txt","a");
-  
+  fp = fopen("bad_data.txt", "a");
+
   // Floor of bits/64 the reminder is in the next QW
   const uint32_t qw_num = bits_num / BITS_IN_QW;
 
@@ -151,12 +151,14 @@ print_last_block(IN const uint8_t *last_bytes,
 }
 
 void
-print_LE(IN const uint64_t *in, IN const uint32_t bits_num)
+print_LE(IN const char *name, IN const uint64_t *in, IN const uint32_t bits_num)
 {
   // 添加文件写入指针
   FILE *fp;
-  fp = fopen("bad_data.txt","a");
-  
+  fp = fopen("bad_data.txt", "a");
+  fprintf(fp, "\n%s\n", name);
+  fclose(fp);
+
   const uint32_t qw_num = bits_num / BITS_IN_QW;
 
   // Print the MSB QW
@@ -168,9 +170,10 @@ print_LE(IN const uint64_t *in, IN const uint32_t bits_num)
     print_uint64(in[i]);
     print_newline(qw_pos);
   }
-
-  fprintf(fp, "\n");
-  fclose(fp);
+  FILE *fp2;
+  fp2 = fopen("bad_data.txt", "a");
+  fprintf(fp2, "\n");
+  fclose(fp2);
 }
 
 void

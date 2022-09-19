@@ -28,14 +28,14 @@
 
 // Printing values in Little Endian
 void
-print_LE(IN const uint64_t *in, IN uint32_t bits_num);
+print_LE(IN const char *name, IN const uint64_t *in, IN uint32_t bits_num);
 
 // Printing values in Big Endian
 void
 print_BE(IN const uint64_t *in, IN uint32_t bits_num);
 
 // Printing number is required only in verbose level 2 or above
-#if VERBOSE >= 2
+#if VERBOSE == 1
 #  ifdef PRINT_IN_BE
 // Print in Big Endian
 #    define print(name, in, bits_num) \
@@ -46,11 +46,11 @@ print_BE(IN const uint64_t *in, IN uint32_t bits_num);
       } while(0)
 #  else
 // Print in Little Endian
-#    define print(name, in, bits_num) \
-      do                              \
-      {                               \
-        EDMSG(name);                  \
-        print_LE(in, bits_num);       \
+#    define print(name, in, bits_num)
+#    define fprint(name, in, bits_num) \
+      do                               \
+      {                                \
+        print_LE(name, in, bits_num);  \
       } while(0)
 #  endif
 #else

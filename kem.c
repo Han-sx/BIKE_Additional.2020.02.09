@@ -24,6 +24,13 @@
 #include "sampling.h"
 #include "sha.h"
 
+// 定义全局变量用于保存 g, pk[0](f0), pk[1](f1), e0, e1, c0, c1的值
+r_t       g_global  = {0};
+pk_t      pk_global = {0};
+split_e_t e_global  = {0};
+sk_t      sk_global = {0};
+ct_t      ct_global = {0};
+
 _INLINE_ void
 split_e(OUT split_e_t *splitted_e, IN const e_t *e)
 {
@@ -84,9 +91,9 @@ calc_pk(OUT pk_t *pk, IN const seed_t *g_seed, IN const pad_sk_t p_sk)
   pk->val[0] = p_pk[0].val;
   pk->val[1] = p_pk[1].val;
 
-  print("\ng:  ", (uint64_t *)g.val.raw, R_BITS);
-  print("f0: ", (uint64_t *)&p_pk[0], R_BITS);
-  print("f1: ", (uint64_t *)&p_pk[1], R_BITS);
+  g_global         = g.val;
+  pk_global.val[0] = p_pk[0].val;
+  pk_global.val[1] = p_pk[1].val;
 
   return SUCCESS;
 }
@@ -170,19 +177,17 @@ encrypt(OUT ct_t *ct, OUT split_e_t *mf, IN const pk_t *pk, IN const seed_t *see
   mf->val[0] = mf_int[0].val;
   mf->val[1] = mf_int[1].val;
 
-  print("e0: ", (uint64_t *)splitted_e.val[0].raw, R_BITS);
-  print("e1: ", (uint64_t *)splitted_e.val[1].raw, R_BITS);
-  print("c0: ", (uint64_t *)p_ct[0].val.raw, R_BITS);
-  print("c1: ", (uint64_t *)p_ct[1].val.raw, R_BITS);
+  e_global.val[0] = splitted_e.val[0];
+  e_global.val[1] = splitted_e.val[1];
 
   return SUCCESS;
 }
 
 _INLINE_ ret_t
-reencrypt(OUT pad_ct_t ce,
-          OUT split_e_t *e2,
+reencrypt(OUT pad_ct_t        ce,
+          OUT split_e_t      *e2,
           IN const split_e_t *e,
-          IN const ct_t *l_ct)
+          IN const ct_t      *l_ct)
 {
   // Compute (c0 + e0') and (c1 + e1')
   GUARD(gf2x_add(ce[0].val.raw, l_ct->val[0].raw, e->val[0].raw, R_SIZE));
@@ -275,13 +280,6 @@ crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk)
 
   GUARD(calc_pk(l_pk, &seeds.seed[1], p_sk));
 
-  print("h0: ", (uint64_t *)&l_sk->bin[0], R_BITS);
-  print("h1: ", (uint64_t *)&l_sk->bin[1], R_BITS);
-  print("h0c:", (uint64_t *)&l_sk->wlist[0], SIZEOF_BITS(compressed_idx_dv_t));
-  print("h1c:", (uint64_t *)&l_sk->wlist[1], SIZEOF_BITS(compressed_idx_dv_t));
-  print("sigma0: ", (uint64_t *)l_sk->sigma0.raw, R_BITS);
-  print("sigma1: ", (uint64_t *)l_sk->sigma1.raw, R_BITS);
-
   DMSG("  Exit crypto_kem_keypair.\n");
 
   return SUCCESS;
@@ -291,16 +289,16 @@ crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk)
 //               ct is a key encapsulation message (ciphertext),
 //               ss is the shared secret.
 int
-crypto_kem_enc(OUT unsigned char *     ct,
-               OUT unsigned char *     ss,
+crypto_kem_enc(OUT unsigned char      *ct,
+               OUT unsigned char      *ss,
                IN const unsigned char *pk)
 {
   DMSG("  Enter crypto_kem_enc.\n");
 
   // Convert to the types that are used by this implementation
   const pk_t *l_pk = (const pk_t *)pk;
-  ct_t *      l_ct = (ct_t *)ct;
-  ss_t *      l_ss = (ss_t *)ss;
+  ct_t       *l_ct = (ct_t *)ct;
+  ss_t       *l_ss = (ss_t *)ss;
 
   // For NIST DRBG_CTR
   DEFER_CLEANUP(seeds_t seeds = {0}, seeds_cleanup);
@@ -327,7 +325,7 @@ crypto_kem_enc(OUT unsigned char *     ct,
 //               sk is the private key,
 //               ss is the shared secret
 int
-crypto_kem_dec(OUT unsigned char *     ss,
+crypto_kem_dec(OUT unsigned char      *ss,
                IN const unsigned char *ct,
                IN const unsigned char *sk)
 {
@@ -336,7 +334,16 @@ crypto_kem_dec(OUT unsigned char *     ss,
   // Convert to the types used by this implementation
   const sk_t *l_sk = (const sk_t *)sk;
   const ct_t *l_ct = (const ct_t *)ct;
-  ss_t *      l_ss = (ss_t *)ss;
+  ss_t       *l_ss = (ss_t *)ss;
+
+  sk_global.bin[0]   = l_sk->bin[0];
+  sk_global.bin[1]   = l_sk->bin[1];
+  sk_global.wlist[0] = l_sk->wlist[0];
+  sk_global.wlist[1] = l_sk->wlist[1];
+  sk_global.sigma0   = l_sk->sigma0;
+  sk_global.sigma1   = l_sk->sigma1;
+  ct_global.val[0]   = l_ct->val[0];
+  ct_global.val[1]   = l_ct->val[1];
 
   // Force zero initialization.
   DEFER_CLEANUP(syndrome_t syndrome = {0}, syndrome_cleanup);
@@ -347,6 +354,27 @@ crypto_kem_dec(OUT unsigned char *     ss,
 
   DMSG("  Decoding.\n");
   uint32_t dec_ret = decode(&e, &syndrome, l_ct, l_sk) != SUCCESS ? 0 : 1;
+
+  // 如果 decode 失败，即 r_bits_vector_weight((r_t *)s.qw) > 0，保存数据
+  if(dec_ret == 0)
+  {
+    // 保存数据：g: f0: f1: h0: h1: h0c: h1c: sigma0: sigma1: e0: e1: c0: c1:
+    fprint("h0: ", (uint64_t *)&sk_global.bin[0], R_BITS);
+    fprint("h1: ", (uint64_t *)&sk_global.bin[1], R_BITS);
+    fprint("h0c:", (uint64_t *)&sk_global.wlist[0],
+           SIZEOF_BITS(compressed_idx_dv_t));
+    fprint("h1c:", (uint64_t *)&sk_global.wlist[1],
+           SIZEOF_BITS(compressed_idx_dv_t));
+    fprint("sigma0: ", (uint64_t *)sk_global.sigma0.raw, R_BITS);
+    fprint("sigma1: ", (uint64_t *)sk_global.sigma1.raw, R_BITS);
+    fprint("g:  ", (uint64_t *)g_global.raw, R_BITS);
+    fprint("f0: ", (uint64_t *)pk_global.val[0].raw, R_BITS);
+    fprint("f1: ", (uint64_t *)pk_global.val[1].raw, R_BITS);
+    fprint("e0: ", (uint64_t *)e_global.val[0].raw, R_BITS);
+    fprint("e1: ", (uint64_t *)e_global.val[1].raw, R_BITS);
+    fprint("c0: ", (uint64_t *)ct_global.val[0].raw, R_BITS);
+    fprint("c1: ", (uint64_t *)ct_global.val[1].raw, R_BITS);
+  }
 
   DEFER_CLEANUP(split_e_t e2, split_e_cleanup);
   DEFER_CLEANUP(pad_ct_t ce, pad_ct_cleanup);

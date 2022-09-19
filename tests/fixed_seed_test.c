@@ -21,6 +21,7 @@
 #include "kem.h"
 #include "measurements.h"
 #include "utilities.h"
+#include <omp.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -32,6 +33,7 @@
 int
 main()
 {
+
 #ifdef FIXED_SEED
   srand(0);
 #else
@@ -44,14 +46,19 @@ main()
   uint8_t k_enc[sizeof(ss_t)] = {0}; // shared secret after encapsulate
   uint8_t k_dec[sizeof(ss_t)] = {0}; // shared secret after decapsulate
 
-  for(uint32_t i = 1; i <= NUM_OF_TESTS; ++i)
+  // clock_t start_test = clock();
+
+#pragma omp parallel for
+// 执行 2 的 48 次方循环
+  for(uint64_t i = 1; i <= NUM_OF_TESTS; ++i)
   {
     int res = 0;
 
-    MSG("Code test: %d\n\n", i);
+    MSG("Code test: %lu\n\n", i);
 
     // Key generation
-    MEASURE("  keypair", res = crypto_kem_keypair(pk, sk););
+    // MEASURE("  keypair", res = crypto_kem_keypair(pk, sk););
+    res = crypto_kem_keypair(pk, sk);
 
     if(res != 0)
     {
@@ -59,10 +66,12 @@ main()
       continue;
     }
 
-    uint32_t dec_rc = 0;
+    // uint32_t dec_rc = 0;
 
     // Encapsulate
-    MEASURE("  encaps", res = crypto_kem_enc(ct, k_enc, pk););
+    // MEASURE("  encaps", res = crypto_kem_enc(ct, k_enc, pk););
+    res = crypto_kem_enc(ct, k_enc, pk);
+
     if(res != 0)
     {
       MSG("encapsulate failed with error: %d\n", res);
@@ -70,36 +79,43 @@ main()
     }
 
     // Decapsulate
-    MEASURE("  decaps", dec_rc = crypto_kem_dec(k_dec, ct, sk););
+    // MEASURE("  decaps", dec_rc = crypto_kem_dec(k_dec, ct, sk););
+    // dec_rc = crypto_kem_dec(k_dec, ct, sk);
+    res = crypto_kem_dec(k_dec, ct, sk);
 
-    if(dec_rc != 0)
-    {
-      printf("Decoding failed after %d code tests!\n", i);
+    if (res != 0){
+      // 添加文件写入指针
+      FILE *fp;
+      fp = fopen("bad_data.txt", "a");
+      fprintf(fp, "%lu", i);
+      fclose(fp);
     }
-    else
-    {
-      if(secure_cmp(k_enc, k_dec, sizeof(k_dec) / sizeof(uint64_t)))
-      {
-        MSG("Success! decapsulated key is the same as encapsulated "
-            "key!\n");
-      }
-      else
-      {
-        MSG("Failure! decapsulated key is NOT the same as encapsulated "
-            "key!\n");
-      }
-    }
+    // if(dec_rc != 0)
+    // {
+    //   printf("Decoding failed after %d code tests!\n", i);
+    // }
+    // else
+    // {
+    //   if(secure_cmp(k_enc, k_dec, sizeof(k_dec) / sizeof(uint64_t)))
+    //   {
+    //     MSG("Success! decapsulated key is the same as encapsulated "
+    //         "key!\n");
+    //   }
+    //   else
+    //   {
+    //     MSG("Failure! decapsulated key is NOT the same as encapsulated "
+    //         "key!\n");
+    //   }
+    // }
 
-    print("Initiator's generated key (K) of 256 bits = ", (uint64_t *)k_enc,
-          SIZEOF_BITS(k_enc));
-    print("Responder's computed key (K) of 256 bits  = ", (uint64_t *)k_dec,
-          SIZEOF_BITS(k_enc));
-    
-    // FILE *fp;
-    // fp=fopen("bad_data.txt","a");
-    // fprintf(fp,"%d\n",i);
-    // fclose(fp);
+    // print("Initiator's generated key (K) of 256 bits = ", (uint64_t *)k_enc,
+    //       SIZEOF_BITS(k_enc));
+    // print("Responder's computed key (K) of 256 bits  = ", (uint64_t *)k_dec,
+    //       SIZEOF_BITS(k_enc));
   }
+
+  // clock_t end_test = clock();
+  // printf("\ttook %lfs\n", ((double)(end_test - start_test) / CLOCKS_PER_SEC));
 
   return 0;
 }
