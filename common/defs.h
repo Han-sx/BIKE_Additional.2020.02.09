@@ -108,7 +108,7 @@
 ///////////////////////////////////////////
 
 #ifndef VERBOSE
-#  define VERBOSE 1
+#  define VERBOSE 4
 #endif
 
 #ifndef __ASM_FILE__

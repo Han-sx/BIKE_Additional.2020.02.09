@@ -39,7 +39,7 @@ main()
 #endif
 
   uint8_t sk[sizeof(sk_t)]    = {0}; // private-key: (h0, h1)
-  uint8_t pk[sizeof(pk_t)]    = {0}; // public-key:  (g0, g1)
+  uint8_t pk[sizeof(pk_t)]    = {0}; // public-key:  (f0, f1)
   uint8_t ct[sizeof(ct_t)]    = {0}; // ciphertext:  (c0, c1)
   uint8_t k_enc[sizeof(ss_t)] = {0}; // shared secret after encapsulate
   uint8_t k_dec[sizeof(ss_t)] = {0}; // shared secret after decapsulate
@@ -94,6 +94,11 @@ main()
           SIZEOF_BITS(k_enc));
     print("Responder's computed key (K) of 256 bits  = ", (uint64_t *)k_dec,
           SIZEOF_BITS(k_enc));
+    
+    // FILE *fp;
+    // fp=fopen("bad_data.txt","a");
+    // fprintf(fp,"%d\n",i);
+    // fclose(fp);
   }
 
   return 0;

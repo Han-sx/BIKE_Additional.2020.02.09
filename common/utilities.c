@@ -28,12 +28,17 @@
 _INLINE_ void
 print_newline(IN const uint64_t qw_pos)
 {
+  // 添加文件写入指针
+  FILE *fp;
+  fp = fopen("bad_data.txt","a");
+
 #ifndef NO_NEWLINE
   if((qw_pos % 4) == 3)
   {
-    printf("\n    ");
+    fprintf(fp, "\n    ");
   }
 #endif
+  fclose(fp);
 }
 
 // This function is stitched for R_BITS vector
@@ -54,6 +59,10 @@ r_bits_vector_weight(IN const r_t *in)
 _INLINE_ void
 print_uint64(IN const uint64_t val)
 {
+  // 添加文件写入指针
+  FILE *fp;
+  fp = fopen("bad_data.txt","a");
+
   // If printing in BE is requried swap the order of bytes
 #ifdef PRINT_IN_BE
   uint64_t tmp = bswap_64(val);
@@ -61,11 +70,12 @@ print_uint64(IN const uint64_t val)
   uint64_t tmp = val;
 #endif
 
-  printf("%.16" PRIx64, tmp);
+  fprintf(fp, "%.16" PRIx64, tmp);
 
 #ifndef NO_SPACE
-  printf(" ");
+  fprintf(fp, " ");
 #endif
+  fclose(fp);
 }
 
 // Last block requires a special handling as we should zero mask all the bits
@@ -76,6 +86,10 @@ print_last_block(IN const uint8_t *last_bytes,
                  IN const uint32_t bits_num,
                  IN const uint32_t endien)
 {
+  // 添加文件写入指针
+  FILE *fp;
+  fp = fopen("bad_data.txt","a");
+  
   // Floor of bits/64 the reminder is in the next QW
   const uint32_t qw_num = bits_num / BITS_IN_QW;
 
@@ -103,41 +117,46 @@ print_last_block(IN const uint8_t *last_bytes,
   {
     for(i = 0; (uint32_t)i < (bytes_num - 1); i++)
     {
-      printf("%.2x", last_bytes[i]);
+      fprintf(fp, "%.2x", last_bytes[i]);
     }
 
-    printf("%.2x", last_byte);
+    fprintf(fp, "%.2x", last_byte);
 
     for(i++; (uint32_t)i < sizeof(uint64_t); i++)
     {
-      printf("__");
+      fprintf(fp, "__");
     }
   }
   else
   {
     for(i = sizeof(uint64_t) - 1; (uint32_t)i >= bytes_num; i--)
     {
-      printf("__");
+      fprintf(fp, "__");
     }
 
-    printf("%.2x", last_byte);
+    fprintf(fp, "%.2x", last_byte);
 
     for(i--; i >= 0; i--)
     {
-      printf("%.2x", last_bytes[i]);
+      fprintf(fp, "%.2x", last_bytes[i]);
     }
   }
 
 #ifndef NO_SPACE
-  printf(" ");
+  fprintf(fp, " ");
 #endif
 
+  fclose(fp);
   return 1;
 }
 
 void
 print_LE(IN const uint64_t *in, IN const uint32_t bits_num)
 {
+  // 添加文件写入指针
+  FILE *fp;
+  fp = fopen("bad_data.txt","a");
+  
   const uint32_t qw_num = bits_num / BITS_IN_QW;
 
   // Print the MSB QW
@@ -150,7 +169,8 @@ print_LE(IN const uint64_t *in, IN const uint32_t bits_num)
     print_newline(qw_pos);
   }
 
-  printf("\n");
+  fprintf(fp, "\n");
+  fclose(fp);
 }
 
 void

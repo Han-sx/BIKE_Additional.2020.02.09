@@ -74,7 +74,7 @@ calc_pk(OUT pk_t *pk, IN const seed_t *g_seed, IN const pad_sk_t p_sk)
 
   GUARD(sample_uniform_r_bits(&g.val, g_seed, MUST_BE_ODD));
 
-  // Calculate (g0, g1) = (g*h1, g*h0)
+  // Calculate (f0, f1) = (g*h1, g*h0)
   GUARD(gf2x_mod_mul((uint64_t *)&p_pk[0], (const uint64_t *)&g,
                      (const uint64_t *)&p_sk[1]));
   GUARD(gf2x_mod_mul((uint64_t *)&p_pk[1], (const uint64_t *)&g,
@@ -84,9 +84,9 @@ calc_pk(OUT pk_t *pk, IN const seed_t *g_seed, IN const pad_sk_t p_sk)
   pk->val[0] = p_pk[0].val;
   pk->val[1] = p_pk[1].val;
 
-  print("g:  ", (uint64_t *)g.val.raw, R_BITS);
-  print("g0: ", (uint64_t *)&p_pk[0], R_BITS);
-  print("g1: ", (uint64_t *)&p_pk[1], R_BITS);
+  print("\ng:  ", (uint64_t *)g.val.raw, R_BITS);
+  print("f0: ", (uint64_t *)&p_pk[0], R_BITS);
+  print("f1: ", (uint64_t *)&p_pk[1], R_BITS);
 
   return SUCCESS;
 }
