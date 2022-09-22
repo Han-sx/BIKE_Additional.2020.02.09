@@ -22,6 +22,7 @@
 #include "measurements.h"
 #include "utilities.h"
 #include <omp.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -30,16 +31,10 @@
 ////////////////////////////////////////////////////////////////
 //                 Main function for testing
 ////////////////////////////////////////////////////////////////
-int
-main()
+
+void *
+th()
 {
-
-#ifdef FIXED_SEED
-  srand(0);
-#else
-  srand(time(NULL));
-#endif
-
   uint8_t sk[sizeof(sk_t)]    = {0}; // private-key: (h0, h1)
   uint8_t pk[sizeof(pk_t)]    = {0}; // public-key:  (f0, f1)
   uint8_t ct[sizeof(ct_t)]    = {0}; // ciphertext:  (c0, c1)
@@ -48,8 +43,7 @@ main()
 
   // clock_t start_test = clock();
 
-#pragma omp parallel for
-// 执行 2 的 48 次方循环
+  // 执行 2 的 48 次方循环
   for(uint64_t i = 1; i <= NUM_OF_TESTS; ++i)
   {
     int res = 0;
@@ -83,7 +77,8 @@ main()
     // dec_rc = crypto_kem_dec(k_dec, ct, sk);
     res = crypto_kem_dec(k_dec, ct, sk);
 
-    if (res != 0){
+    if(res != 0)
+    {
       // 添加文件写入指针
       FILE *fp;
       fp = fopen("bad_data.txt", "a");
@@ -116,6 +111,31 @@ main()
 
   // clock_t end_test = clock();
   // printf("\ttook %lfs\n", ((double)(end_test - start_test) / CLOCKS_PER_SEC));
+  pthread_exit(NULL);
+}
+
+int
+main()
+{
+
+#ifdef FIXED_SEED
+  srand(0);
+#else
+  srand(time(NULL));
+#endif
+
+  uint8_t TH_NUM = 16;
+  pthread_t tid[TH_NUM];
+
+  for(uint8_t j = 0; j < TH_NUM; j++)
+  {
+    pthread_create(&tid[j], NULL, th, NULL);
+  }
+
+  for(uint8_t j = 0; j < TH_NUM; j++)
+  {
+    pthread_join(tid[j], NULL);
+  }
 
   return 0;
 }
