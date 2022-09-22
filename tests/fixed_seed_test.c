@@ -48,7 +48,7 @@ th()
   {
     int res = 0;
 
-    MSG("Code test: %lu\n\n", i);
+    // MSG("Code test: %lu\n\n", i);
 
     // Key generation
     // MEASURE("  keypair", res = crypto_kem_keypair(pk, sk););
