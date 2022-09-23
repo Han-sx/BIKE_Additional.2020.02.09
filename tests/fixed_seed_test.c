@@ -40,19 +40,18 @@ th()
   uint8_t ct[sizeof(ct_t)]    = {0}; // ciphertext:  (c0, c1)
   uint8_t k_enc[sizeof(ss_t)] = {0}; // shared secret after encapsulate
   uint8_t k_dec[sizeof(ss_t)] = {0}; // shared secret after decapsulate
+  int     res                 = 0;
 
   // clock_t start_test = clock();
+  // Key generation
+  // MEASURE("  keypair", res = crypto_kem_keypair(pk, sk););
+  res = crypto_kem_keypair(pk, sk);
 
   // 执行 2 的 48 次方循环
   for(uint64_t i = 1; i <= NUM_OF_TESTS; ++i)
   {
-    int res = 0;
 
     // MSG("Code test: %lu\n\n", i);
-
-    // Key generation
-    // MEASURE("  keypair", res = crypto_kem_keypair(pk, sk););
-    res = crypto_kem_keypair(pk, sk);
 
     if(res != 0)
     {
