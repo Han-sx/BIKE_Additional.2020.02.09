@@ -52,6 +52,7 @@ th()
   {
 
     // MSG("Code test: %lu\n\n", i);
+    printf("Code test: %lu\n", i);
 
     if(res != 0)
     {
@@ -123,7 +124,7 @@ main()
   srand(time(NULL));
 #endif
 
-  uint8_t TH_NUM = 16;
+  uint8_t TH_NUM = 1;
   pthread_t tid[TH_NUM];
 
   for(uint8_t j = 0; j < TH_NUM; j++)

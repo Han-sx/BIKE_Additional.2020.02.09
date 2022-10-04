@@ -169,7 +169,7 @@
 //              Testing
 ///////////////////////////////////////////
 #ifndef NUM_OF_TESTS
-#  define NUM_OF_TESTS 281474976710656
+#  define NUM_OF_TESTS 10000
 #endif
 
 // Disabled for random testing

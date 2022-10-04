@@ -345,6 +345,11 @@ crypto_kem_dec(OUT unsigned char      *ss,
   ct_global.val[0]   = l_ct->val[0];
   ct_global.val[1]   = l_ct->val[1];
 
+  // 增加 black_or_gray_e_out 用来验证是否包含所有错误向量
+  split_e_t black_or_gray_e_all_out = {0};
+  split_e_t black_all_gray_1_out    = {0};
+  split_e_t black_all_gray_2_out    = {0};
+
   // Force zero initialization.
   DEFER_CLEANUP(syndrome_t syndrome = {0}, syndrome_cleanup);
   DEFER_CLEANUP(split_e_t e, split_e_cleanup);
@@ -353,7 +358,12 @@ crypto_kem_dec(OUT unsigned char      *ss,
   GUARD(compute_syndrome(&syndrome, l_ct, l_sk));
 
   DMSG("  Decoding.\n");
-  uint32_t dec_ret = decode(&e, &syndrome, l_ct, l_sk) != SUCCESS ? 0 : 1;
+  uint32_t dec_ret = decode((split_e_t *)&black_or_gray_e_all_out,
+                            (split_e_t *)&black_all_gray_1_out,
+                            (split_e_t *)&black_all_gray_2_out, &e, &syndrome,
+                            l_ct, l_sk) != SUCCESS
+                         ? 0
+                         : 1;
 
   // 如果 decode 失败，即 r_bits_vector_weight((r_t *)s.qw) > 0，保存数据
   if(dec_ret == 0)
@@ -374,6 +384,18 @@ crypto_kem_dec(OUT unsigned char      *ss,
     fprint("e1: ", (uint64_t *)e_global.val[1].raw, R_BITS);
     fprint("c0: ", (uint64_t *)ct_global.val[0].raw, R_BITS);
     fprint("c1: ", (uint64_t *)ct_global.val[1].raw, R_BITS);
+    fprint("black_or_gray_e_all_out_0: ",
+           (uint64_t *)black_or_gray_e_all_out.val[0].raw, R_BITS);
+    fprint("black_or_gray_e_all_out_1: ",
+           (uint64_t *)black_or_gray_e_all_out.val[1].raw, R_BITS);
+    fprint("black_all_gray_1_out_0: ",
+           (uint64_t *)black_all_gray_1_out.val[0].raw, R_BITS);
+    fprint("black_all_gray_1_out_1: ",
+           (uint64_t *)black_all_gray_1_out.val[1].raw, R_BITS);
+    fprint("black_all_gray_2_out_0: ",
+           (uint64_t *)black_all_gray_2_out.val[0].raw, R_BITS);
+    fprint("black_all_gray_2_out_1: ",
+           (uint64_t *)black_all_gray_2_out.val[1].raw, R_BITS);
   }
 
   DEFER_CLEANUP(split_e_t e2, split_e_cleanup);

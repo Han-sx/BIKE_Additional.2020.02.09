@@ -65,7 +65,7 @@
 #  endif
 #elif defined(BGF_DECODER)
 #  if(LEVEL == 1)
-#    define MAX_IT 5
+#    define MAX_IT 7
 #  elif(LEVEL == 3)
 #    define MAX_IT 6
 #  elif(LEVEL == 5)
@@ -74,6 +74,20 @@
 #    error "Level can only be 1/3/5"
 #  endif
 #endif
+
+// 对长字节流, a 和 b 或的值再和 res 或, 保存在 res 中 (res = (a | b) | res)
+_INLINE_ ret_t
+gf2x_or(OUT uint8_t      *res,
+        IN const uint8_t *a,
+        IN const uint8_t *b,
+        IN const uint64_t bytelen)
+{
+  for(uint64_t i = 0; i < bytelen; i++)
+  {
+    res[i] = a[i] | b[i] | res[i];
+  }
+  return SUCCESS;
+}
 
 // Duplicates the first R_BITS of the syndrome three times
 // |------------------------------------------|
@@ -322,7 +336,10 @@ find_err2(OUT split_e_t                  *e,
 }
 
 ret_t
-decode(OUT split_e_t       *e,
+decode(OUT split_e_t       *black_or_gray_e_all_out,
+       OUT split_e_t       *black_all_gray_1_out,
+       OUT split_e_t       *black_all_gray_2_out,
+       OUT split_e_t       *e,
        IN const syndrome_t *original_s,
        IN const ct_t       *ct,
        IN const sk_t       *sk)
@@ -331,6 +348,10 @@ decode(OUT split_e_t       *e,
   split_e_t  gray_e  = {0};
   syndrome_t s;
 
+  // ---- test ----
+  split_e_t black_or_gray_e_all = {0};
+  split_e_t black_all_gray_1    = {0};
+  split_e_t black_all_gray_2    = {0};
   // Reset (init) the error because it is xored in the find_err funcitons.
   memset(e, 0, sizeof(*e));
   s = *original_s;
@@ -346,6 +367,35 @@ decode(OUT split_e_t       *e,
     DMSG("    Weight of syndrome: %lu\n", r_bits_vector_weight((r_t *)s.qw));
 
     find_err1(e, &black_e, &gray_e, &s, sk->wlist, threshold);
+
+    // 保存所有的黑灰集合
+    for(uint8_t i = 0; i < N0; i++)
+    {
+      // 将黑灰集合'或'运算(black_e | gray_e) 存放于
+      // black_or_gray_e，即所有未知数位
+      GUARD(gf2x_or((uint8_t *)&black_or_gray_e_all.val[i].raw,
+                    black_e.val[i].raw, gray_e.val[i].raw, R_SIZE));
+    }
+    // 保存第一次的灰和所有的黑
+    for(uint8_t i = 0; i < N0; i++)
+    {
+      if(iter < 1)
+      {
+        GUARD(gf2x_or((uint8_t *)&black_all_gray_1.val[i].raw, black_e.val[i].raw,
+                      gray_e.val[i].raw, R_SIZE));
+      }else{
+        GUARD(gf2x_or((uint8_t *)&black_all_gray_1.val[i].raw, black_e.val[i].raw,
+                      black_all_gray_1.val[i].raw, R_SIZE));        
+      }
+    }
+    // 保存最后一次灰到 black_all_gray_1
+    if(iter == MAX_IT - 1){
+      for(uint8_t i = 0; i < N0; i++)
+      {
+        GUARD(gf2x_or((uint8_t *)&black_all_gray_2.val[i].raw,
+                      black_all_gray_1.val[i].raw, gray_e.val[i].raw, R_SIZE));
+      }
+    }
     GUARD(recompute_syndrome(&s, ct, sk, e));
 #ifdef BGF_DECODER
     if(iter >= 1)
@@ -367,6 +417,14 @@ decode(OUT split_e_t       *e,
     find_err2(e, &gray_e, &s, sk->wlist, ((DV + 1) / 2) + 1);
     GUARD(recompute_syndrome(&s, ct, sk, e));
   }
+
+  // 将 black_or_gray_e 传递出去比较是否包含所有错误向量
+  black_or_gray_e_all_out->val[0] = black_or_gray_e_all.val[0];
+  black_or_gray_e_all_out->val[1] = black_or_gray_e_all.val[1];
+  black_all_gray_1_out->val[0] = black_all_gray_1.val[0];
+  black_all_gray_1_out->val[1] = black_all_gray_1.val[1];
+  black_all_gray_2_out->val[0] = black_all_gray_2.val[0];
+  black_all_gray_2_out->val[1] = black_all_gray_2.val[1];
 
   if(r_bits_vector_weight((r_t *)s.qw) > 0)
   {
