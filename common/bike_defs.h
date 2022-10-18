@@ -54,12 +54,12 @@
 #  define BLOCK_SIZE       32768
 #elif(LEVEL == 1)
 // 64-bits of post-quantum security parameters (BIKE paper):
-#  define R_BITS 11779
+#  define R_BITS 9857 // 11779
 #  define DV     71
 #  define T1     134
 
-#  define THRESHOLD_COEFF0 13.530
-#  define THRESHOLD_COEFF1 0.0069721
+#  define THRESHOLD_COEFF0 13.530 // 30.8301
+#  define THRESHOLD_COEFF1 0.0069721 // 0.0027
 
 // The gfm code is optimized to a block size in this case:
 #  define BLOCK_SIZE       (16384)

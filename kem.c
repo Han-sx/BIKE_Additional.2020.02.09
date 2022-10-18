@@ -348,6 +348,14 @@ crypto_kem_dec(OUT unsigned char *     ss,
   DMSG("  Decoding.\n");
   uint32_t dec_ret = decode(&e, &syndrome, l_ct, l_sk) != SUCCESS ? 0 : 1;
 
+  // 如果失败保存到文件
+  if(dec_ret == 0){
+    FILE *fp;
+    fp = fopen("error_count.txt", "a");
+    fprintf(fp, "译码失败\n");
+    fclose(fp);
+  }
+
   DEFER_CLEANUP(split_e_t e2, split_e_cleanup);
   DEFER_CLEANUP(pad_ct_t ce, pad_ct_cleanup);
   GUARD(reencrypt(ce, &e2, &e, l_ct));
